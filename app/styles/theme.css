@@ -1,0 +1,10 @@
+:root {
+    --color-approve: #166534;
+    --color-reject: #991b1b;
+    --color-view: #2d6a4f;
+    --color-suspend: #ea580c;
+    --color-verify: #1e40af;
+    --color-flag: #991b1b;
+    --color-background: #ffffff;
+    --color-text: #000000;
+}
