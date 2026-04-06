@@ -1,4 +1,4 @@
-const API_BASE = "http://3.109.4.7:3000";
+const API_BASE = "http://localhost:3000";
 const DEFAULT_TIMEOUT_MS = 10000;
 
 function getAuthHeaders(): Record<string, string> {

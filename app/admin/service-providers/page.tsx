@@ -6,7 +6,7 @@ import FilterTabs from "../../components/FilterTabs";
 import DataTable from "../../components/DataTable";
 import StatusBadge from "../../components/StatusBadge";
 import ActionButton from "../../components/ActionButton";
-import EmployerDetailsModal from "../../components/EmployerDetailsModal";
+import ServiceProviderDetailsModal from "../../components/ServiceProviderDetailsModal";
 import { apiGet, apiPost } from "../../lib/api";
 
 const filterTabs = [
@@ -22,17 +22,19 @@ const getColumns = (
   onView: (id: string) => void
 ) => [
   {
-    key: "business",
-    header: "Business",
+    key: "provider",
+    header: "Service Provider",
     render: (_: unknown, row: Record<string, unknown>) => (
       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
         <span style={{ fontSize: "14px" }}>{row.avatar as string}</span>
-        <span style={{ fontWeight: 500 }}>{row.business as string}</span>
+        <span style={{ fontWeight: 500 }}>{row.provider as string}</span>
       </div>
     ),
   },
-  { key: "owner", header: "Owner" },
-  { key: "city", header: "Location" },
+  { key: "skill", header: "Skill" },
+  { key: "location", header: "Location" },
+  { key: "servicesDone", header: "Services Done" },
+  { key: "rating", header: "Rating" },
   {
     key: "status",
     header: "Status",
@@ -89,13 +91,13 @@ const getColumns = (
   },
 ];
 
-export default function EmployersPage() {
+export default function ServiceProvidersPage() {
   const [activeTab, setActiveTab] = useState("All");
 
-  const [allEmployers, setAllEmployers] = useState<any[]>([]);
-  const [verifiedEmployers, setVerifiedEmployers] = useState<any[]>([]);
-  const [pendingEmployers, setPendingEmployers] = useState<any[]>([]);
-  const [suspendedEmployers, setSuspendedEmployers] = useState<any[]>([]);
+  const [allProviders, setAllProviders] = useState<any[]>([]);
+  const [verifiedProviders, setVerifiedProviders] = useState<any[]>([]);
+  const [pendingProviders, setPendingProviders] = useState<any[]>([]);
+  const [suspendedProviders, setSuspendedProviders] = useState<any[]>([]);
 
   const [stats, setStats] = useState({
     total: 0,
@@ -104,16 +106,16 @@ export default function EmployersPage() {
     suspended: 0,
   });
 
-  const [viewEmployerId, setViewEmployerId] = useState<string | null>(null);
+  const [viewProviderId, setViewProviderId] = useState<string | null>(null);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     action: "approve" | "reject" | null;
-    employerId: string | null;
+    providerId: string | null;
   }>({
     isOpen: false,
     action: null,
-    employerId: null,
+    providerId: null,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -126,35 +128,37 @@ export default function EmployersPage() {
     try {
       setIsLoading(true);
       const [allRes, verifiedRes, pendingRes, suspendedRes] = await Promise.all([
-        apiGet<any[]>("/employers").catch(() => []),
-        apiGet<{ count: number; data: any[] }>("/admin/employers/approved").catch(() => ({ count: 0, data: [] })),
-        apiGet<{ count: number; data: any[] }>("/admin/employers/pending").catch(() => ({ count: 0, data: [] })),
-        apiGet<{ count: number; data: any[] }>("/admin/employers/rejected").catch(() => ({ count: 0, data: [] })),
+        apiGet<any[]>("/service-providers").catch(() => []),
+        apiGet<{ count: number; data: any[] }>("/admin/service-providers/approved").catch(() => ({ count: 0, data: [] })),
+        apiGet<{ count: number; data: any[] }>("/admin/service-providers/pending").catch(() => ({ count: 0, data: [] })),
+        apiGet<{ count: number; data: any[] }>("/admin/service-providers/rejected").catch(() => ({ count: 0, data: [] })),
       ]);
 
-      const mapEmployers = (employersArray: any[], forceVariant?: string) => {
-        return employersArray.map((employer) => {
-          const isApproved = employer.approval_status === "approved" || employer.user_id?.approval_status === "approved";
-          const isPending = employer.approval_status === "pending" || employer.user_id?.approval_status === "pending";
+      const mapProviders = (providersArray: any[], forceVariant?: string) => {
+        return providersArray.map((provider) => {
+          const isApproved = provider.approval_status === "approved" || provider.user_id?.approval_status === "approved";
+          const isPending = provider.approval_status === "pending" || provider.user_id?.approval_status === "pending";
           const variant = forceVariant || (isApproved ? "active" : isPending ? "pending" : "suspended");
           const statusLabel = variant === "active" ? "Active" : variant === "pending" ? "Pending" : "Suspended";
 
           return {
-            id: employer._id,
-            business: employer.business_name || "Unknown Business",
-            owner: employer.user_id?.name || "N/A",
-            avatar: employer.logo_url ? "🏢" : "🏢",
-            city: employer.user_id?.addresses?.[0]?.city || "N/A",
+            id: provider._id,
+            provider: provider.user_id?.name || "Unknown Provider",
+            avatar: provider.user_id?.profile_photo ? "📸" : "🟢",
+            skill: provider.skills?.length > 0 ? provider.skills[0].skill_name || provider.job_title || "General" : provider.job_title || "General",
+            location: provider.current_location || provider.user_id?.addresses?.[0]?.city || "N/A",
+            servicesDone: provider.completed_services || 0,
+            rating: provider.rating > 0 ? `⭐ ${provider.rating}` : "New",
             status: statusLabel,
             statusVariant: variant,
           };
         });
       };
 
-      setAllEmployers(mapEmployers(Array.isArray(allRes) ? allRes : []));
-      setVerifiedEmployers(mapEmployers(verifiedRes?.data || [], "active"));
-      setPendingEmployers(mapEmployers(pendingRes?.data || [], "pending"));
-      setSuspendedEmployers(mapEmployers(suspendedRes?.data || [], "suspended"));
+      setAllProviders(mapProviders(Array.isArray(allRes) ? allRes : []));
+      setVerifiedProviders(mapProviders(verifiedRes?.data || [], "active"));
+      setPendingProviders(mapProviders(pendingRes?.data || [], "pending"));
+      setSuspendedProviders(mapProviders(suspendedRes?.data || [], "suspended"));
 
       setStats({
         total: Array.isArray(allRes) ? allRes.length : 0,
@@ -163,51 +167,51 @@ export default function EmployersPage() {
         suspended: suspendedRes?.count || 0,
       });
     } catch (err) {
-      console.error("Failed to fetch employers:", err);
+      console.error("Failed to fetch service providers:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleApproveEmployer = async (id: string) => {
+  const handleApproveProvider = async (id: string) => {
     try {
       setIsLoading(true);
-      await apiPost(`/admin/employers/${id}/approve`, {});
+      await apiPost(`/admin/service-providers/${id}/approve`, {});
       await fetchAllData();
     } catch (err) {
-      console.error("Failed to approve employer:", err);
+      console.error("Failed to approve service provider:", err);
       setIsLoading(false);
     }
   };
 
-  const handleRejectEmployer = async (id: string) => {
+  const handleRejectProvider = async (id: string) => {
     try {
       setIsLoading(true);
-      await apiPost(`/admin/employers/${id}/reject`, {});
+      await apiPost(`/admin/service-providers/${id}/reject`, {});
       await fetchAllData();
     } catch (err) {
-      console.error("Failed to reject employer:", err);
+      console.error("Failed to reject service provider:", err);
       setIsLoading(false);
     }
   };
 
   const getFilteredData = () => {
-    let sourceData = allEmployers;
-    if (activeTab === "Verified") sourceData = verifiedEmployers;
-    else if (activeTab === "Pending") sourceData = pendingEmployers;
-    else if (activeTab === "Suspended") sourceData = suspendedEmployers;
+    let sourceData = allProviders;
+    if (activeTab === "Verified") sourceData = verifiedProviders;
+    else if (activeTab === "Pending") sourceData = pendingProviders;
+    else if (activeTab === "Suspended") sourceData = suspendedProviders;
     return sourceData;
   };
 
-  const requestApproveEmployer = (id: string) => {
-    setConfirmModal({ isOpen: true, action: "approve", employerId: id });
+  const requestApproveProvider = (id: string) => {
+    setConfirmModal({ isOpen: true, action: "approve", providerId: id });
   };
 
-  const requestRejectEmployer = (id: string) => {
-    setConfirmModal({ isOpen: true, action: "reject", employerId: id });
+  const requestRejectProvider = (id: string) => {
+    setConfirmModal({ isOpen: true, action: "reject", providerId: id });
   };
 
-  const columns = getColumns(requestApproveEmployer, requestRejectEmployer, setViewEmployerId);
+  const columns = getColumns(requestApproveProvider, requestRejectProvider, setViewProviderId);
 
   return (
     <div>
@@ -221,7 +225,7 @@ export default function EmployersPage() {
         }}
       >
         <h1 style={{ fontSize: "22px", fontWeight: 700, margin: 0 }}>
-          Employer Management
+          Service Provider Management
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ fontSize: "13px", fontWeight: 600, color: "#ea580c" }}>
@@ -229,7 +233,7 @@ export default function EmployersPage() {
           </span>
           <input
             type="text"
-            placeholder="Search employers..."
+            placeholder="Search providers..."
             style={{
               padding: "8px 16px",
               borderRadius: "6px",
@@ -260,7 +264,7 @@ export default function EmployersPage() {
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
         <StatCard
-          title="TOTAL EMPLOYERS"
+          title="TOTAL PROVIDERS"
           value={isLoading ? "..." : stats.total.toString()}
         />
         <StatCard
@@ -286,9 +290,9 @@ export default function EmployersPage() {
         />
       </div>
 
-      {/* Employers Table */}
+      {/* Service Providers Table */}
       <DataTable
-        title={isLoading ? "Loading Employers..." : "Employers List"}
+        title={isLoading ? "Loading Providers..." : "Service Providers List"}
         columns={columns}
         data={getFilteredData()}
       />
@@ -329,12 +333,12 @@ export default function EmployersPage() {
                 lineHeight: 1.5,
               }}
             >
-              Do you really want to {confirmModal.action === "approve" ? "verify" : "suspend"} this employer? This action can be undone later.
+              Do you really want to {confirmModal.action === "approve" ? "verify" : "suspend"} this service provider? This action can be undone later.
             </p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button
                 onClick={() =>
-                  setConfirmModal({ isOpen: false, action: null, employerId: null })
+                  setConfirmModal({ isOpen: false, action: null, providerId: null })
                 }
                 style={{
                   padding: "8px 16px",
@@ -351,11 +355,11 @@ export default function EmployersPage() {
               <button
                 onClick={() => {
                   if (confirmModal.action === "approve") {
-                    handleApproveEmployer(confirmModal.employerId!);
+                    handleApproveProvider(confirmModal.providerId!);
                   } else if (confirmModal.action === "reject") {
-                    handleRejectEmployer(confirmModal.employerId!);
+                    handleRejectProvider(confirmModal.providerId!);
                   }
-                  setConfirmModal({ isOpen: false, action: null, employerId: null });
+                  setConfirmModal({ isOpen: false, action: null, providerId: null });
                 }}
                 style={{
                   padding: "8px 16px",
@@ -374,11 +378,11 @@ export default function EmployersPage() {
         </div>
       )}
 
-      {/* Employer Profile Details Modal */}
-      {viewEmployerId && (
-        <EmployerDetailsModal
-          employerId={viewEmployerId}
-          onClose={() => setViewEmployerId(null)}
+      {/* Service Provider Profile Details Modal */}
+      {viewProviderId && (
+        <ServiceProviderDetailsModal
+          providerId={viewProviderId}
+          onClose={() => setViewProviderId(null)}
         />
       )}
     </div>

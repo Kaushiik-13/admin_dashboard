@@ -9,16 +9,14 @@ import ActionButton from "../../components/ActionButton";
 import WorkerDetailsModal from "../../components/WorkerDetailsModal";
 import { apiGet, apiPost } from "../../lib/api";
 
-const filterTabs = [
+const statusTabs = [
   { label: "All" },
   { label: "Verified" },
   { label: "Pending", color: "#f59e0b" },
   { label: "Suspended", color: "#ef4444" },
-  { label: "Electrician", color: "#2d6a4f" },
-  { label: "Plumber", color: "#3b82f6" },
-  { label: "Labour", color: "#6b7280" },
 ];
 
+const skillColors = ["#2d6a4f", "#3b82f6", "#6b7280", "#8b5cf6", "#f59e0b", "#ec4899", "#14b8a6", "#f97316"];
 const getColumns = (
   onApprove: (id: string) => void,
   onReject: (id: string) => void,
@@ -110,6 +108,7 @@ const getColumns = (
 
 export default function WorkersPage() {
   const [activeTab, setActiveTab] = useState("All");
+  const [filterTabs, setFilterTabs] = useState(statusTabs);
   
   const [allWorkers, setAllWorkers] = useState<any[]>([]);
   const [verifiedWorkers, setVerifiedWorkers] = useState<any[]>([]);
@@ -139,7 +138,23 @@ export default function WorkersPage() {
 
   useEffect(() => {
     fetchAllData();
+    fetchSkills();
   }, []);
+
+  const fetchSkills = async () => {
+    try {
+      const res = await apiGet<any[]>("/skills");
+      if (Array.isArray(res)) {
+        const skillTabs = res.map((skill, i) => ({
+          label: skill.name || skill.skill_name || skill.title || "Unknown",
+          color: skillColors[i % skillColors.length],
+        }));
+        setFilterTabs([...statusTabs, ...skillTabs]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch skills:", err);
+    }
+  };
 
   const fetchAllData = async () => {
     try {
@@ -253,6 +268,9 @@ export default function WorkersPage() {
           Worker Management
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <span style={{ fontSize: "13px", fontWeight: 600, color: "#ea580c" }}>
+            {stats.pending} Pending Review
+          </span>
           <input
             type="text"
             placeholder="Search workers..."

@@ -19,59 +19,7 @@ const registrationData = [
   { label: "Sun", value1: 88, value2: 45 },
 ];
 
-const skillDistribution = [
-  { label: "Electrician", value: 42, color: "#1b4332" },
-  { label: "General Labour", value: 23, color: "#2d6a4f" },
-  { label: "Plumber", value: 17, color: "#52b788" },
-  { label: "Others", value: 18, color: "#95d5b2" },
-];
-
-const recentRegistrations = [
-  {
-    name: "Ramesh Kumar",
-    role: "Worker",
-    roleVariant: "worker",
-    location: "Chennai",
-    registered: "2h ago",
-    status: "Pending",
-    statusDot: "#f59e0b",
-    action: "approve",
-    actionLabel: "Approve",
-  },
-  {
-    name: "Ravi Electronics",
-    role: "Employer",
-    roleVariant: "employer",
-    location: "Chennai",
-    registered: "4h ago",
-    status: "Verified",
-    statusDot: "#3b82f6",
-    action: "view",
-    actionLabel: "View",
-  },
-  {
-    name: "Suresh Babu",
-    role: "Worker",
-    roleVariant: "worker",
-    location: "Coimbatore",
-    registered: "Yesterday",
-    status: "Active",
-    statusDot: "#22c55e",
-    action: "view",
-    actionLabel: "View",
-  },
-  {
-    name: "Chennai Repairs",
-    role: "Employer",
-    roleVariant: "employer",
-    location: "Chennai",
-    registered: "2 days ago",
-    status: "Review",
-    statusDot: "#f59e0b",
-    action: "suspend",
-    actionLabel: "Suspend",
-  },
-];
+const skillColors = ["#1b4332", "#2d6a4f", "#52b788", "#95d5b2", "#74c69d", "#b7e4c7", "#3b82f6", "#f59e0b"];
 
 const columns = [
   { key: "name", header: "Name" },
@@ -117,23 +65,67 @@ const columns = [
   },
 ];
 
+const getRelativeTime = (dateStr: string): string => {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffHrs < 1) return "Just now";
+  if (diffHrs < 24) return `${diffHrs}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  return date.toLocaleDateString();
+};
+
+const getRoleVariant = (roles: string[]): "worker" | "employer" => {
+  if (roles.includes("service_provider") || roles.includes("worker")) return "worker";
+  return "employer";
+};
+
+const formatRole = (roles: string[]): string => {
+  const role = roles[0] || "user";
+  return role.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 export default function DashboardPage() {
   const [username, setUsername] = useState("Admin");
   const [usersCount, setUsersCount] = useState<string | number>("...");
   const [workersCount, setWorkersCount] = useState<string | number>("...");
+  const [employersCount, setEmployersCount] = useState<string | number>("...");
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
+  const [skillDistribution, setSkillDistribution] = useState<any[]>([]);
 
   useEffect(() => {
-    // Fetch users count
-    apiGet<{ count: number }>("/users")
+    // Fetch users
+    apiGet<{ count: number; users: any[] }>("/users")
       .then((res) => {
         if (typeof res?.count === "number") {
           setUsersCount(res.count);
         } else {
           setUsersCount(0);
         }
+        if (Array.isArray(res?.users)) {
+          const mapped = res.users.slice(0, 5).map((user: any) => {
+            const isPending = user.approval_status === "pending";
+            const isApproved = user.approval_status === "approved";
+            return {
+              name: user.name,
+              role: formatRole(user.roles || []),
+              roleVariant: getRoleVariant(user.roles || []),
+              location: user.addresses?.[0]?.city || "N/A",
+              registered: getRelativeTime(user.createdAt),
+              status: isPending ? "Pending" : isApproved ? "Active" : "Inactive",
+              statusDot: isPending ? "#f59e0b" : isApproved ? "#22c55e" : "#6b7280",
+              action: isPending ? "approve" : "view",
+              actionLabel: isPending ? "Approve" : "View",
+            };
+          });
+          setRecentUsers(mapped);
+        }
       })
       .catch((err) => {
-        console.error("Failed to fetch users count:", err);
+        console.error("Failed to fetch users:", err);
         setUsersCount("Error");
       });
 
@@ -149,6 +141,37 @@ export default function DashboardPage() {
       .catch((err) => {
         console.error("Failed to fetch workers count:", err);
         setWorkersCount("Error");
+      });
+
+    // Fetch employers count
+    apiGet<any[]>("/employers")
+      .then((res) => {
+        if (Array.isArray(res)) {
+          setEmployersCount(res.length);
+        } else {
+          setEmployersCount(0);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch employers:", err);
+        setEmployersCount("Error");
+      });
+
+    // Fetch skill distribution
+    apiGet<any[]>("/admin/dashboard/skills-stats")
+      .then((res) => {
+        if (Array.isArray(res)) {
+          const distribution = res
+            .map((item: any, i: number) => ({
+              label: item.skill_name,
+              value: item.count,
+              color: skillColors[i % skillColors.length],
+            }));
+          setSkillDistribution(distribution);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch skills stats:", err);
       });
 
     try {
@@ -233,7 +256,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="TOTAL EMPLOYERS"
-          value="3,204"
+          value={employersCount.toString()}
         />
         <StatCard
           title="ACTIVE JOBS"
@@ -286,9 +309,13 @@ export default function DashboardPage() {
               margin: "0 0 16px 0",
             }}
           >
-            Worker Skill Distribution
+            Skill Distribution
           </h3>
-          <PieChart data={skillDistribution} />
+          {skillDistribution.length > 0 ? (
+            <PieChart data={skillDistribution} />
+          ) : (
+            <p style={{ fontSize: "13px", color: "#9ca3af" }}>No skill data available</p>
+          )}
         </div>
       </div>
 
@@ -296,7 +323,7 @@ export default function DashboardPage() {
       <DataTable
         title="Recent User Registrations"
         columns={columns}
-        data={recentRegistrations}
+        data={recentUsers}
         headerRight={
           <>
             <button

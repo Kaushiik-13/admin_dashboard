@@ -16,6 +16,7 @@ const menuSections = [
     items: [
       { label: "Workers", href: "/admin/workers", icon: "👷" },
       { label: "Employers", href: "/admin/employers", icon: "🏢" },
+      { label: "Service Providers", href: "/admin/service-providers", icon: "🔧" },
       { label: "Verification Queue", href: "/admin/verification-queue", icon: "✅" },
     ],
   },
@@ -52,16 +53,6 @@ export default function Sidebar() {
         overflowY: "auto",
       }}
     >
-      {/* Brand header */}
-      <div style={{ padding: "0 16px", marginBottom: "16px" }}>
-        <div style={{ fontWeight: 700, fontSize: "14px", color: "#ffffff" }}>
-          LocalHire
-        </div>
-        <div style={{ fontSize: "11px", color: "#9ca3af" }}>
-          Admin Console v1.0
-        </div>
-      </div>
-
       {/* Menu sections */}
       {menuSections.map((section) => (
         <div key={section.title} style={{ marginBottom: "8px" }}>
