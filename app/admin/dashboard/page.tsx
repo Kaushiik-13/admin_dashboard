@@ -162,6 +162,7 @@ export default function DashboardPage() {
       .then((res) => {
         if (Array.isArray(res)) {
           const distribution = res
+            .filter((item: any) => item.count > 0)
             .map((item: any, i: number) => ({
               label: item.skill_name,
               value: item.count,

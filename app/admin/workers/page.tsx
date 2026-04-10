@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import StatCard from "../../components/StatCard";
-import FilterTabs from "../../components/FilterTabs";
 import DataTable from "../../components/DataTable";
 import StatusBadge from "../../components/StatusBadge";
 import ActionButton from "../../components/ActionButton";
@@ -107,7 +106,8 @@ const getColumns = (
 ];
 
 export default function WorkersPage() {
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeStatuses, setActiveStatuses] = useState<string[]>(["All"]);
+  const [activeRole, setActiveRole] = useState<string | null>(null);
   const [filterTabs, setFilterTabs] = useState(statusTabs);
   
   const [allWorkers, setAllWorkers] = useState<any[]>([]);
@@ -135,6 +135,18 @@ export default function WorkersPage() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     fetchAllData();
@@ -230,17 +242,21 @@ export default function WorkersPage() {
 
   const getFilteredData = () => {
     let sourceData = allWorkers;
-    if (activeTab === "Verified") sourceData = verifiedWorkers;
-    else if (activeTab === "Pending") sourceData = pendingWorkers;
-    else if (activeTab === "Suspended") sourceData = suspendedWorkers;
 
-    // Filter by skill for the standard groups
-    if (["All", "Verified", "Pending", "Suspended"].includes(activeTab)) {
-      return sourceData;
+    if (!activeStatuses.includes("All")) {
+      sourceData = sourceData.filter((w) => {
+        if (activeStatuses.includes("Verified") && w.statusVariant === "active") return true;
+        if (activeStatuses.includes("Pending") && w.statusVariant === "pending") return true;
+        if (activeStatuses.includes("Suspended") && w.statusVariant === "suspended") return true;
+        return false;
+      });
     }
-    // E.g., Electrician, Plumber fallback. Since "Skill" is N/A right now, 
-    // it will return empty but will gracefully start working later.
-    return sourceData.filter((w) => w.skill === activeTab);
+
+    if (activeRole) {
+      sourceData = sourceData.filter((w) => w.skill === activeRole);
+    }
+
+    return sourceData;
   };
 
   const requestApproveWorker = (id: string) => {
@@ -252,6 +268,48 @@ export default function WorkersPage() {
   };
 
   const columns = getColumns(requestApproveWorker, requestRejectWorker, setViewWorkerId);
+
+  const skillCounts = (() => {
+    const counts: Record<string, number> = {
+      All: allWorkers.length,
+      Verified: verifiedWorkers.length,
+      Pending: pendingWorkers.length,
+      Suspended: suspendedWorkers.length,
+    };
+    
+    // Skill counts reflect the currently active statuses
+    let baseForSkills = allWorkers;
+    if (!activeStatuses.includes("All")) {
+      baseForSkills = baseForSkills.filter((w) => {
+        if (activeStatuses.includes("Verified") && w.statusVariant === "active") return true;
+        if (activeStatuses.includes("Pending") && w.statusVariant === "pending") return true;
+        if (activeStatuses.includes("Suspended") && w.statusVariant === "suspended") return true;
+        return false;
+      });
+    }
+
+    baseForSkills.forEach((w) => {
+      if (w.skill) {
+        counts[w.skill] = (counts[w.skill] || 0) + 1;
+      }
+    });
+    return counts;
+  })();
+
+  const toggleStatus = (label: string) => {
+    if (label === "All") {
+      setActiveStatuses(["All"]);
+    } else {
+      let newStatuses = activeStatuses.filter(s => s !== "All");
+      if (newStatuses.includes(label)) {
+        newStatuses = newStatuses.filter(s => s !== label);
+        if (newStatuses.length === 0) newStatuses = ["All"];
+      } else {
+        newStatuses.push(label);
+      }
+      setActiveStatuses(newStatuses);
+    }
+  };
 
   return (
     <div>
@@ -321,13 +379,169 @@ export default function WorkersPage() {
         />
       </div>
 
-      {/* Filter Tabs */}
-      <div style={{ marginBottom: "16px" }}>
-        <FilterTabs
-          tabs={filterTabs}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
+      {/* Filters Section */}
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        
+        {/* Status Pills */}
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", flex: 1 }}>
+          {statusTabs.map((tab) => {
+            const isActive = activeStatuses.includes(tab.label);
+            const count = skillCounts[tab.label] || 0;
+            return (
+              <button
+                key={tab.label}
+                onClick={() => toggleStatus(tab.label)}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: "20px",
+                  border: isActive ? "1px solid #111827" : "1px solid #e5e7eb",
+                  background: isActive ? "#111827" : "#ffffff",
+                  color: isActive ? "#ffffff" : "#374151",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  transition: "all 0.15s ease"
+                }}
+              >
+                {tab.color && (
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: tab.color }} />
+                )}
+                {tab.label}
+                <span
+                  style={{
+                    backgroundColor: isActive ? "rgba(255,255,255,0.2)" : "#f3f4f6",
+                    color: isActive ? "#ffffff" : "#6b7280",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Roles Dropdown Button */}
+        <div ref={dropdownRef} style={{ position: "relative" }}>
+          <button
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "8px",
+              border: activeRole ? "1px solid #111827" : "1px solid #e5e7eb",
+              background: activeRole ? "#f9fafb" : "#ffffff",
+              color: "#374151",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+              transition: "all 0.15s ease",
+            }}
+            title="Filter by Role"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 6H20M7 12H17M10 18H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          
+          {isDropdownOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                marginTop: "8px",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+                zIndex: 50,
+                width: "260px",
+                maxHeight: "350px",
+                overflowY: "auto",
+                padding: "8px 0",
+              }}
+            >
+              {filterTabs
+                .slice(statusTabs.length)
+                .sort((a, b) => {
+                  const countA = skillCounts[a.label] || 0;
+                  const countB = skillCounts[b.label] || 0;
+                  return countB - countA;
+                })
+                .map((tab) => {
+                const count = skillCounts[tab.label] || 0;
+                const isActiveRole = activeRole === tab.label;
+                return (
+                  <div
+                    key={tab.label}
+                    onClick={() => {
+                      setActiveRole(isActiveRole ? null : tab.label);
+                      setIsDropdownOpen(false);
+                    }}
+                    style={{
+                      padding: "10px 16px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      cursor: "pointer",
+                      background: isActiveRole ? "#f9fafb" : "transparent",
+                      borderLeft: isActiveRole ? "3px solid #111827" : "3px solid transparent",
+                      transition: "all 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActiveRole) e.currentTarget.style.background = "#f3f4f6";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActiveRole) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      {tab.color && (
+                        <div
+                          style={{
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background: tab.color,
+                          }}
+                        />
+                      )}
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: isActiveRole ? 600 : 500,
+                          color: isActiveRole ? "#111827" : "#4b5563",
+                        }}
+                      >
+                        {tab.label}
+                      </span>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "#6b7280",
+                        background: "#f3f4f6",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Workers Table */}
