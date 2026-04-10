@@ -4,18 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiGet, apiPost, apiPatch, apiDelete } from "../../lib/api";
 import { validateMinLength, validateMaxLength } from "../../lib/validation";
 
-const moderationSettings = [
-  { label: "Auto-approve verified employers", key: "autoApprove" },
-  { label: "Require Aadhaar for workers", key: "requireAadhaar" },
-  { label: "Flag jobs below ₹500/day", key: "flagLowPay" },
-  { label: "Allow international job posts", key: "allowInternational" },
-];
 
-const matchingDefaults = [
-  { label: "Default search radius (km)", key: "searchRadius", value: 5 },
-  { label: "Max radius (km)", key: "maxRadius", value: 25 },
-  { label: "Urgent job expiry (hours)", key: "urgentExpiry", value: 24 },
-];
 
 interface Language {
   _id: string;
@@ -36,18 +25,7 @@ interface EmploymentType {
 }
 
 export default function ConfigurationPage() {
-  const [checks, setChecks] = useState<Record<string, boolean>>({
-    autoApprove: false,
-    requireAadhaar: false,
-    flagLowPay: false,
-    allowInternational: false,
-  });
 
-  const [matchValues, setMatchValues] = useState<Record<string, number>>({
-    searchRadius: 5,
-    maxRadius: 25,
-    urgentExpiry: 24,
-  });
 
   // ===== LANGUAGE STATE =====
   const [languages, setLanguages] = useState<Language[]>([]);
@@ -279,117 +257,7 @@ export default function ConfigurationPage() {
           gap: "16px",
         }}
       >
-        {/* Moderation Settings */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            padding: "20px 24px",
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "15px",
-              fontWeight: 600,
-              margin: "0 0 16px 0",
-            }}
-          >
-            Moderation Settings
-          </h3>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
-            {moderationSettings.map((setting) => (
-              <div
-                key={setting.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "4px 0",
-                  borderBottom: "1px solid #f3f4f6",
-                }}
-              >
-                <span style={{ fontSize: "13px", color: "#374151" }}>
-                  {setting.label}
-                </span>
-                <input
-                  type="checkbox"
-                  checked={checks[setting.key] || false}
-                  onChange={(e) =>
-                    setChecks({ ...checks, [setting.key]: e.target.checked })
-                  }
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    cursor: "pointer",
-                    accentColor: "#2d6a4f",
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Matching Settings */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: "8px",
-            border: "1px solid #e5e7eb",
-            padding: "20px 24px",
-          }}
-        >
-          <h3
-            style={{
-              fontSize: "15px",
-              fontWeight: 600,
-              margin: "0 0 16px 0",
-            }}
-          >
-            Matching Settings
-          </h3>
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
-          >
-            {matchingDefaults.map((setting) => (
-              <div
-                key={setting.key}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "4px 0",
-                  borderBottom: "1px solid #f3f4f6",
-                }}
-              >
-                <span style={{ fontSize: "13px", color: "#374151" }}>
-                  {setting.label}
-                </span>
-                <input
-                  type="number"
-                  value={matchValues[setting.key]}
-                  onChange={(e) =>
-                    setMatchValues({
-                      ...matchValues,
-                      [setting.key]: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  style={{
-                    width: "60px",
-                    padding: "4px 8px",
-                    borderRadius: "4px",
-                    border: "1px solid #e5e7eb",
-                    fontSize: "13px",
-                    textAlign: "center",
-                    outline: "none",
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Supported Languages */}
         <div
