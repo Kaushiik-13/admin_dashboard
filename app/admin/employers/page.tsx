@@ -63,8 +63,8 @@ const getColumns = (
                 onClick={() => onApprove(row.id as string)}
               />
               <ActionButton
-                label="Reject"
-                variant="reject"
+                label="Suspend"
+                variant="suspend"
                 onClick={() => onReject(row.id as string)}
               />
             </>
@@ -134,8 +134,9 @@ export default function EmployersPage() {
 
       const mapEmployers = (employersArray: any[], forceVariant?: string) => {
         return employersArray.map((employer) => {
-          const isApproved = employer.approval_status === "approved" || employer.user_id?.approval_status === "approved";
-          const isPending = employer.approval_status === "pending" || employer.user_id?.approval_status === "pending";
+          const actualStatus = employer.approval_status || employer.user_id?.approval_status || "pending";
+          const isApproved = actualStatus === "approved";
+          const isPending = actualStatus === "pending";
           const variant = forceVariant || (isApproved ? "active" : isPending ? "pending" : "suspended");
           const statusLabel = variant === "active" ? "Active" : variant === "pending" ? "Pending" : "Suspended";
 

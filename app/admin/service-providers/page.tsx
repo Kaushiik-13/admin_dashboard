@@ -65,8 +65,8 @@ const getColumns = (
                 onClick={() => onApprove(row.id as string)}
               />
               <ActionButton
-                label="Reject"
-                variant="reject"
+                label="Suspend"
+                variant="suspend"
                 onClick={() => onReject(row.id as string)}
               />
             </>
@@ -136,8 +136,9 @@ export default function ServiceProvidersPage() {
 
       const mapProviders = (providersArray: any[], forceVariant?: string) => {
         return providersArray.map((provider) => {
-          const isApproved = provider.approval_status === "approved" || provider.user_id?.approval_status === "approved";
-          const isPending = provider.approval_status === "pending" || provider.user_id?.approval_status === "pending";
+          const actualStatus = provider.approval_status || provider.user_id?.approval_status || "pending";
+          const isApproved = actualStatus === "approved";
+          const isPending = actualStatus === "pending";
           const variant = forceVariant || (isApproved ? "active" : isPending ? "pending" : "suspended");
           const statusLabel = variant === "active" ? "Active" : variant === "pending" ? "Pending" : "Suspended";
 

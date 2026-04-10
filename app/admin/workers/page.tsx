@@ -52,31 +52,17 @@ const getColumns = (
       const status = row.statusVariant as string;
       return (
         <div style={{ display: "flex", gap: "8px" }}>
+          <ActionButton
+            label="View"
+            variant="view"
+            onClick={() => onView(row.id as string)}
+          />
           {status === "pending" && (
             <>
-              <ActionButton
-                label="View"
-                variant="view"
-                onClick={() => onView(row.id as string)}
-              />
               <ActionButton
                 label="Verify"
                 variant="verify"
                 onClick={() => onApprove(row.id as string)}
-              />
-              <ActionButton
-                label="Reject"
-                variant="reject"
-                onClick={() => onReject(row.id as string)}
-              />
-            </>
-          )}
-          {status === "active" && (
-            <>
-              <ActionButton
-                label="View"
-                variant="view"
-                onClick={() => onView(row.id as string)}
               />
               <ActionButton
                 label="Suspend"
@@ -85,19 +71,19 @@ const getColumns = (
               />
             </>
           )}
+          {status === "active" && (
+            <ActionButton
+              label="Suspend"
+              variant="suspend"
+              onClick={() => onReject(row.id as string)}
+            />
+          )}
           {status === "suspended" && (
-            <>
-              <ActionButton
-                label="View"
-                variant="view"
-                onClick={() => onView(row.id as string)}
-              />
-              <ActionButton
-                label="Verify"
-                variant="verify"
-                onClick={() => onApprove(row.id as string)}
-              />
-            </>
+            <ActionButton
+              label="Verify"
+              variant="verify"
+              onClick={() => onApprove(row.id as string)}
+            />
           )}
         </div>
       );
@@ -181,8 +167,9 @@ export default function WorkersPage() {
 
       const mapWorkers = (workersArray: any[], forceVariant?: string) => {
         return workersArray.map((worker) => {
-          const isApproved = worker.approval_status === "approved" || worker.user_id?.approval_status === "approved";
-          const isPending = worker.approval_status === "pending" || worker.user_id?.approval_status === "pending";
+          const actualStatus = worker.approval_status || worker.user_id?.approval_status || "pending";
+          const isApproved = actualStatus === "approved";
+          const isPending = actualStatus === "pending";
           const variant = forceVariant || (isApproved ? "active" : isPending ? "pending" : "suspended");
           const statusLabel = variant === "active" ? "Active" : variant === "pending" ? "Pending" : "Suspended";
 
