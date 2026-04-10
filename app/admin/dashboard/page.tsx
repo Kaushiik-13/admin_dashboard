@@ -9,15 +9,20 @@ import StatusBadge from "../../components/StatusBadge";
 import ActionButton from "../../components/ActionButton";
 import { apiGet } from "../../lib/api";
 
-const registrationData = [
-  { label: "Mon", value1: 85, value2: 65 },
-  { label: "Tue", value1: 92, value2: 70 },
-  { label: "Wed", value1: 78, value2: 55 },
-  { label: "Thu", value1: 65, value2: 50 },
-  { label: "Fri", value1: 40, value2: 35 },
-  { label: "Sat", value1: 95, value2: 60 },
-  { label: "Sun", value1: 88, value2: 45 },
-];
+const generateLast7Days = () => {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    days.push({
+      dateStr: date.toISOString().split("T")[0],
+      label: date.toLocaleDateString("en-US", { weekday: "short" }),
+      value1: 0,
+      value2: 0,
+    });
+  }
+  return days;
+};
 
 const skillColors = ["#1b4332", "#2d6a4f", "#52b788", "#95d5b2", "#74c69d", "#b7e4c7", "#3b82f6", "#f59e0b"];
 
@@ -60,6 +65,11 @@ const columns = [
       <ActionButton
         label={row.actionLabel as string}
         variant={row.action as "approve" | "view" | "suspend"}
+        onClick={() => {
+          if (row.action === "approve") {
+            window.location.href = "/admin/verification-queue";
+          }
+        }}
       />
     ),
   },
@@ -93,8 +103,10 @@ export default function DashboardPage() {
   const [usersCount, setUsersCount] = useState<string | number>("...");
   const [workersCount, setWorkersCount] = useState<string | number>("...");
   const [employersCount, setEmployersCount] = useState<string | number>("...");
+  const [activeJobsCount, setActiveJobsCount] = useState<string | number>("...");
   const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [skillDistribution, setSkillDistribution] = useState<any[]>([]);
+  const [registrationData, setRegistrationData] = useState<any[]>(generateLast7Days());
 
   useEffect(() => {
     // Fetch users
@@ -122,6 +134,28 @@ export default function DashboardPage() {
             };
           });
           setRecentUsers(mapped);
+
+          // Populate Registration Chart (Last 7 Days)
+          const last7Days = generateLast7Days();
+          res.users.forEach((user: any) => {
+            if (!user.createdAt) return;
+            const dateObj = new Date(user.createdAt);
+            if (isNaN(dateObj.getTime())) return;
+            
+            // Adjust Date precision to match local
+            const userDate = dateObj.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+            const dayObj = last7Days.find(d => d.dateStr === userDate || d.dateStr === dateObj.toISOString().split("T")[0]);
+            
+            if (dayObj) {
+              const isWorker = getRoleVariant(user.roles || []) === "worker";
+              if (isWorker) {
+                dayObj.value1 += 1;
+              } else {
+                dayObj.value2 += 1;
+              }
+            }
+          });
+          setRegistrationData(last7Days);
         }
       })
       .catch((err) => {
@@ -155,6 +189,24 @@ export default function DashboardPage() {
       .catch((err) => {
         console.error("Failed to fetch employers:", err);
         setEmployersCount("Error");
+      });
+
+    // Fetch active jobs count
+    apiGet<any>("/listings/admin/approved")
+      .then((res) => {
+        if (Array.isArray(res)) {
+          setActiveJobsCount(res.length);
+        } else if (typeof res?.count === "number") {
+          setActiveJobsCount(res.count);
+        } else if (Array.isArray(res?.data)) {
+          setActiveJobsCount(res.data.length);
+        } else {
+          setActiveJobsCount(0);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch active jobs:", err);
+        setActiveJobsCount("Error");
       });
 
     // Fetch skill distribution
@@ -261,7 +313,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="ACTIVE JOBS"
-          value="847"
+          value={activeJobsCount.toString()}
         />
         <StatCard
           title="TOTAL USERS"
@@ -326,36 +378,21 @@ export default function DashboardPage() {
         columns={columns}
         data={recentUsers}
         headerRight={
-          <>
-            <button
-              style={{
-                padding: "6px 16px",
-                borderRadius: "6px",
-                fontSize: "12px",
-                fontWeight: 500,
-                background: "#ffffff",
-                color: "#374151",
-                border: "1px solid #e5e7eb",
-                cursor: "pointer",
-              }}
-            >
-              Filter
-            </button>
-            <button
-              style={{
-                padding: "6px 16px",
-                borderRadius: "6px",
-                fontSize: "12px",
-                fontWeight: 600,
-                background: "#1a1a1a",
-                color: "#ffffff",
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              View All
-            </button>
-          </>
+          <button
+            onClick={() => window.location.href = "/admin/verification-queue"}
+            style={{
+              padding: "6px 16px",
+              borderRadius: "6px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: "#1a1a1a",
+              color: "#ffffff",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            View All
+          </button>
         }
       />
     </div>

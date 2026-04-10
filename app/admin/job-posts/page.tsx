@@ -21,117 +21,117 @@ const getColumns = (
   onReject: (id: string) => void,
   onView: (id: string) => void
 ) => [
-  {
-    key: "jobTitle",
-    header: "Job Title",
-    render: (_: unknown, row: Record<string, unknown>) => (
-      <span style={{ fontWeight: 500 }}>{row.jobTitle as string}</span>
-    ),
-  },
-  {
-    key: "employer",
-    header: "Employer",
-    render: (_: unknown, row: Record<string, unknown>) => (
-      <span style={{ fontWeight: 500 }}>{row.employer as string}</span>
-    ),
-  },
-  { key: "city", header: "City" },
-  {
-    key: "type",
-    header: "Type",
-    render: (_: unknown, row: Record<string, unknown>) => {
-      const jobType = row.type as string;
-      const label = jobType === "full-time" ? "Full Time" : jobType === "part-time" ? "Part Time" : jobType === "daily" ? "Daily" : jobType;
-      return <StatusBadge label={label} variant={row.typeVariant as "worker" | "employer"} />;
+    {
+      key: "jobTitle",
+      header: "Job Title",
+      render: (_: unknown, row: Record<string, unknown>) => (
+        <span style={{ fontWeight: 500 }}>{row.jobTitle as string}</span>
+      ),
     },
-  },
-  { key: "pay", header: "Salary" },
-  {
-    key: "skills",
-    header: "Skills",
-    render: (_: unknown, row: Record<string, unknown>) => {
-      const skills = row.skills as string[];
-      if (!skills || skills.length === 0) return <span style={{ color: "#9ca3af" }}>N/A</span>;
-      return (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-          {skills.slice(0, 3).map((skill, i) => (
-            <span
-              key={i}
-              style={{
-                background: "#e0e7ff",
-                color: "#4f46e5",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                fontSize: "11px",
-                fontWeight: 500,
-              }}
-            >
-              {skill}
-            </span>
-          ))}
-          {skills.length > 3 && (
-            <span style={{ fontSize: "11px", color: "#6b7280" }}>+{skills.length - 3}</span>
-          )}
-        </div>
-      );
+    {
+      key: "employer",
+      header: "Employer",
+      render: (_: unknown, row: Record<string, unknown>) => (
+        <span style={{ fontWeight: 500 }}>{row.employer as string}</span>
+      ),
     },
-  },
-  { key: "posted", header: "Posted" },
-  {
-    key: "status",
-    header: "Status",
-    render: (_: unknown, row: Record<string, unknown>) => (
-      <StatusBadge
-        label={row.status as string}
-        variant={row.statusVariant as "active" | "pending" | "suspended"}
-      />
-    ),
-  },
-  {
-    key: "actions",
-    header: "Actions",
-    render: (_: unknown, row: Record<string, unknown>) => {
-      const statusVariant = row.statusVariant as string;
-      return (
-        <div style={{ display: "flex", gap: "8px" }}>
-          <ActionButton
-            label="View"
-            variant="view"
-            onClick={() => onView(row.id as string)}
-          />
-          {statusVariant === "pending" && (
-            <>
-              <ActionButton
-                label="Approve"
-                variant="approve"
-                onClick={() => onApprove(row.id as string)}
-              />
+    { key: "city", header: "City" },
+    {
+      key: "type",
+      header: "Type",
+      render: (_: unknown, row: Record<string, unknown>) => {
+        const jobType = row.type as string;
+        const label = jobType === "full-time" ? "Full Time" : jobType === "part-time" ? "Part Time" : jobType === "daily" ? "Daily" : jobType;
+        return <StatusBadge label={label} variant={row.typeVariant as "worker" | "employer"} />;
+      },
+    },
+    { key: "pay", header: "Salary" },
+    {
+      key: "skills",
+      header: "Skills",
+      render: (_: unknown, row: Record<string, unknown>) => {
+        const skills = row.skills as string[];
+        if (!skills || skills.length === 0) return <span style={{ color: "#9ca3af" }}>N/A</span>;
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+            {skills.slice(0, 3).map((skill, i) => (
+              <span
+                key={i}
+                style={{
+                  background: "#e0e7ff",
+                  color: "#4f46e5",
+                  padding: "2px 8px",
+                  borderRadius: "4px",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                }}
+              >
+                {skill}
+              </span>
+            ))}
+            {skills.length > 3 && (
+              <span style={{ fontSize: "11px", color: "#6b7280" }}>+{skills.length - 3}</span>
+            )}
+          </div>
+        );
+      },
+    },
+    { key: "posted", header: "Posted" },
+    {
+      key: "status",
+      header: "Status",
+      render: (_: unknown, row: Record<string, unknown>) => (
+        <StatusBadge
+          label={row.status as string}
+          variant={row.statusVariant as "active" | "pending" | "suspended"}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      render: (_: unknown, row: Record<string, unknown>) => {
+        const statusVariant = row.statusVariant as string;
+        return (
+          <div style={{ display: "flex", gap: "8px" }}>
+            <ActionButton
+              label="View"
+              variant="view"
+              onClick={() => onView(row.id as string)}
+            />
+            {statusVariant === "pending" && (
+              <>
+                <ActionButton
+                  label="Approve"
+                  variant="approve"
+                  onClick={() => onApprove(row.id as string)}
+                />
+                <ActionButton
+                  label="Reject"
+                  variant="reject"
+                  onClick={() => onReject(row.id as string)}
+                />
+              </>
+            )}
+            {statusVariant === "active" && (
               <ActionButton
                 label="Reject"
                 variant="reject"
                 onClick={() => onReject(row.id as string)}
               />
-            </>
-          )}
-          {statusVariant === "active" && (
-            <ActionButton
-              label="Reject"
-              variant="reject"
-              onClick={() => onReject(row.id as string)}
-            />
-          )}
-          {statusVariant === "suspended" && (
-            <ActionButton
-              label="Approve"
-              variant="approve"
-              onClick={() => onApprove(row.id as string)}
-            />
-          )}
-        </div>
-      );
+            )}
+            {statusVariant === "suspended" && (
+              <ActionButton
+                label="Approve"
+                variant="approve"
+                onClick={() => onApprove(row.id as string)}
+              />
+            )}
+          </div>
+        );
+      },
     },
-  },
-];
+  ];
 
 export default function JobPostsPage() {
   const [activeTab, setActiveTab] = useState("All");
@@ -171,7 +171,7 @@ export default function JobPostsPage() {
     try {
       setIsLoading(true);
       console.log("🔄 Fetching API data...");
-      
+
       const [allRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
         apiGet<any[]>("/listings").catch((e) => { console.error("❌ /listings error:", e); return []; }),
         apiGet<{ count: number; data: any[] }>("/listings/admin/pending").catch((e) => { console.error("❌ /listings/admin/pending error:", e); return { count: 0, data: [] }; }),
@@ -199,7 +199,7 @@ export default function JobPostsPage() {
           const jobTypeVariant = jobType.toLowerCase().includes("part") || jobType.toLowerCase().includes("daily") ? "worker" : "employer";
 
           const skills = jobDetails.required_skills?.map((s: any) => s.skill_name) || [];
-          
+
           const salaryMin = jobDetails.salary_min;
           const salaryMax = jobDetails.salary_max;
           const formatDate = (dateStr: string) => {
@@ -209,7 +209,7 @@ export default function JobPostsPage() {
             return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
           };
 
-          const pay = salaryMin && salaryMax 
+          const pay = salaryMin && salaryMax
             ? `₹${salaryMin.toLocaleString()} - ₹${salaryMax.toLocaleString()}`
             : "N/A";
 
@@ -239,9 +239,9 @@ export default function JobPostsPage() {
       console.log("📊 Mapped Data:");
       console.log("  All Listings:", mappedAll);
       console.log("  Pending:", mappedPending);
-      console.log("  Stats:", { 
-        total: Array.isArray(allRes) ? allRes.length : 0, 
-        pending: Array.isArray(pendingRes) ? pendingRes.length : (pendingRes?.count || 0) 
+      console.log("  Stats:", {
+        total: Array.isArray(allRes) ? allRes.length : 0,
+        pending: Array.isArray(pendingRes) ? pendingRes.length : (pendingRes?.count || 0)
       });
 
       setAllListings(mappedAll);
@@ -368,7 +368,7 @@ export default function JobPostsPage() {
 
       <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
         <StatCard
-          title="TOTAL ACTIVE JOBS"
+          title="TOTAL JOBS"
           value={isLoading ? "..." : stats.total.toString()}
           subtitle="↑ +120 today"
           subtitleColor="#2d6a4f"
@@ -447,8 +447,8 @@ export default function JobPostsPage() {
               {confirmModal.action === "approve"
                 ? "Do you really want to approve this listing? It will be published."
                 : confirmModal.action === "reject"
-                ? "Do you really want to reject this listing? This action can be undone later."
-                : "Do you really want to delete this listing? This action cannot be undone."}
+                  ? "Do you really want to reject this listing? This action can be undone later."
+                  : "Do you really want to delete this listing? This action cannot be undone."}
             </p>
             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
               <button
@@ -485,8 +485,8 @@ export default function JobPostsPage() {
                     confirmModal.action === "approve"
                       ? "#059669"
                       : confirmModal.action === "reject"
-                      ? "#dc2626"
-                      : "#dc2626",
+                        ? "#dc2626"
+                        : "#dc2626",
                   color: "#fff",
                   border: "none",
                   cursor: "pointer",
@@ -496,8 +496,8 @@ export default function JobPostsPage() {
                 {confirmModal.action === "approve"
                   ? "Yes, Approve"
                   : confirmModal.action === "reject"
-                  ? "Yes, Reject"
-                  : "Yes, Delete"}
+                    ? "Yes, Reject"
+                    : "Yes, Delete"}
               </button>
             </div>
           </div>
