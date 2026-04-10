@@ -1,12 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import StatCard from "../../components/StatCard";
 import HorizontalBar from "../../components/HorizontalBar";
-
-const jobCategories = [
-  { label: "Electrician", percentage: 68, color: "#2d6a4f" },
-  { label: "Labour", percentage: 45, color: "#ef4444" },
-  { label: "Delivery", percentage: 38, color: "#3b82f6" },
-  { label: "Plumber", percentage: 28, color: "#6366f1" },
-];
+import { apiGet } from "../../lib/api";
 
 const topCities = [
   { name: "Chennai", flag: "🏙️", users: "4,820", color: "#2d6a4f" },
@@ -15,7 +12,39 @@ const topCities = [
   { name: "Bangalore", flag: "🏙️", users: "980", color: "#ef4444" },
 ];
 
+const skillColors = ["#2d6a4f", "#ef4444", "#3b82f6", "#6366f1", "#f59e0b", "#14b8a6", "#ec4899", "#8b5cf6"];
+
 export default function AnalyticsPage() {
+  const [jobCategories, setJobCategories] = useState<{ label: string; percentage: number; color: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await apiGet<any[]>("/admin/dashboard/skills-stats");
+        if (Array.isArray(res)) {
+          const total = res.reduce((sum, item) => sum + (item.count || 0), 0);
+          if (total > 0) {
+            const sorted = res.sort((a, b) => b.count - a.count).slice(0, 5);
+            const mapped = sorted.map((item, idx) => ({
+              label: item.skill_name || "Unknown",
+              percentage: Math.round((item.count / total) * 100),
+              color: skillColors[idx % skillColors.length],
+            }));
+            setJobCategories(mapped);
+          } else {
+            setJobCategories([]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch skills stats:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <div>
       {/* Header */}

@@ -394,6 +394,12 @@ export default function JobPostsPage() {
           tabs={filterTabs}
           activeTab={activeTab}
           onChange={setActiveTab}
+          counts={{
+            All: stats.total,
+            Pending: stats.pending,
+            Approved: stats.approved,
+            Rejected: stats.rejected,
+          }}
         />
       </div>
 

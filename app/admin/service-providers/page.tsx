@@ -287,6 +287,12 @@ export default function ServiceProvidersPage() {
           tabs={filterTabs}
           activeTab={activeTab}
           onChange={setActiveTab}
+          counts={{
+            All: stats.total,
+            Verified: stats.verified,
+            Pending: stats.pending,
+            Suspended: stats.suspended,
+          }}
         />
       </div>
 

@@ -271,6 +271,11 @@ export default function VerificationQueuePage() {
           tabs={filterTabs}
           activeTab={activeTab}
           onChange={setActiveTab}
+          counts={{
+            Pending: stats.pending,
+            Approved: stats.approved,
+            Rejected: stats.rejected,
+          }}
         />
       </div>
 
