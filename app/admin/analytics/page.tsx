@@ -16,6 +16,13 @@ const skillColors = ["#2d6a4f", "#ef4444", "#3b82f6", "#6366f1", "#f59e0b", "#14
 
 export default function AnalyticsPage() {
   const [jobCategories, setJobCategories] = useState<{ label: string; percentage: number; color: string }[]>([]);
+  const [statsData, setStatsData] = useState({
+    jobsCompleted: 0,
+    activeJobs: 0,
+    pendingModerations: 0,
+    topCity: "...",
+    topCityPercentage: 0
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +43,62 @@ export default function AnalyticsPage() {
             setJobCategories([]);
           }
         }
+
+        // Fetch Overall Stats
+        const [
+          workersRes,
+          activeJobsRes,
+          pendingWorkersRes,
+          pendingEmployersRes,
+          pendingJobsRes,
+          allJobsRes
+        ] = await Promise.all([
+          apiGet<any[]>("/workers").catch(() => []),
+          apiGet<any>("/listings/admin/approved").catch(() => []),
+          apiGet<any>("/admin/workers/pending").catch(() => ({count:0})),
+          apiGet<any>("/admin/employers/pending").catch(() => ({count:0})),
+          apiGet<any>("/listings/admin/pending").catch(() => ({count:0})),
+          apiGet<any[]>("/listings").catch(() => [])
+        ]);
+
+        const getCount = (r: any) => typeof r?.count === "number" ? r.count : (Array.isArray(r?.data) ? r.data.length : (Array.isArray(r) ? r.length : 0));
+
+        // 1. Total Jobs Completed
+        const jobsCompleted = Array.isArray(workersRes) ? workersRes.reduce((sum, w) => sum + (w.completed_jobs || 0), 0) : 0;
+
+        // 2. Active Jobs
+        const activeJobs = getCount(activeJobsRes);
+
+        // 3. Pending Moderations
+        const pendingModerations = getCount(pendingWorkersRes) + getCount(pendingEmployersRes) + getCount(pendingJobsRes);
+
+        // 4. Top City
+        let topCity = "N/A";
+        let topCityPercentage = 0;
+        let jobListings = Array.isArray(allJobsRes) ? allJobsRes : (allJobsRes?.data || []);
+        if (Array.isArray(jobListings) && jobListings.length > 0) {
+           const cityCounts: Record<string, number> = {};
+           jobListings.forEach((job: any) => {
+             const city = job.location || job.city || job.employer_id?.user_id?.addresses?.[0]?.city || "Unknown";
+             if (city !== "Unknown") {
+                 cityCounts[city] = (cityCounts[city] || 0) + 1;
+             }
+           });
+           
+           let maxCount = 0;
+           for (const [c, count] of Object.entries(cityCounts)) {
+              if (count > maxCount) {
+                 maxCount = count;
+                 topCity = c;
+              }
+           }
+           if (maxCount > 0) {
+              topCityPercentage = Math.round((maxCount / jobListings.length) * 100);
+           }
+        }
+
+        setStatsData({ jobsCompleted, activeJobs, pendingModerations, topCity, topCityPercentage });
+
       } catch (err) {
         console.error("Failed to fetch skills stats:", err);
       } finally {
@@ -57,27 +120,27 @@ export default function AnalyticsPage() {
       {/* Stat Cards */}
       <div style={{ display: "flex", gap: "16px", marginBottom: "24px" }}>
         <StatCard
-          title="HIRE SUCCESS RATE"
-          value="74%"
-          subtitle="↑ +4% vs last month"
-          subtitleColor="#2d6a4f"
+          title="TOTAL JOBS COMPLETED"
+          value={isLoading ? "..." : statsData.jobsCompleted.toString()}
+          subtitle="Completed by verified providers"
+          subtitleColor="#6b7280"
         />
         <StatCard
-          title="AVG TIME TO HIRE"
-          value="3.2h"
-          subtitle="↑ 30% faster"
-          subtitleColor="#2d6a4f"
+          title="ACTIVE JOBS"
+          value={isLoading ? "..." : statsData.activeJobs.toString()}
+          subtitle="Live matching opportunities"
+          subtitleColor="#6b7280"
         />
         <StatCard
-          title="DAILY ACTIVE USERS"
-          value="4,820"
-          subtitle="↑ +12% WoW"
-          subtitleColor="#2d6a4f"
+          title="ACTION REQUIRED"
+          value={isLoading ? "..." : statsData.pendingModerations.toString()}
+          subtitle="Profiles & jobs awaiting review"
+          subtitleColor="#ea580c"
         />
         <StatCard
           title="TOP CITY"
-          value="Chennai"
-          subtitle="38% of all jobs"
+          value={isLoading ? "..." : statsData.topCity}
+          subtitle={`${statsData.topCityPercentage}% of all job posts`}
           subtitleColor="#6b7280"
         />
       </div>

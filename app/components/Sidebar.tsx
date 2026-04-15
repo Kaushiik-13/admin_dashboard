@@ -30,7 +30,7 @@ const menuSections = [
   {
     title: "System",
     items: [
-      { label: "Revenue & Plans", href: "/admin/revenue", icon: "💰" },
+      // { label: "Revenue & Plans", href: "/admin/revenue", icon: "💰" },
       { label: "Configuration", href: "/admin/configuration", icon: "⚙️" },
     ],
   },
